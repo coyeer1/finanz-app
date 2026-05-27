@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
-import { ThemeProvider } from "@/components/shared/theme-provider";
+import { Providers } from "@/components/shared/providers";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -70,7 +70,7 @@ export default function RootLayout({
       className={`${dmSans.variable} ${jetbrainsMono.variable} dark`}
     >
       <body className="min-h-screen bg-bg-primary text-text-primary antialiased">
-        <ThemeProvider>{children}</ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

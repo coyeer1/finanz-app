@@ -347,6 +347,16 @@ body {
 }
 
 /* ═══════════════════════════════════════════
+   Dashboard shell — sidebar offset
+   ═══════════════════════════════════════════ */
+
+@media (min-width: 768px) {
+  main[style*="--sidebar-offset"] {
+    padding-left: var(--sidebar-offset, var(--sidebar-width));
+  }
+}
+
+/* ═══════════════════════════════════════════
    Transaction table rows
    ═══════════════════════════════════════════ */
 

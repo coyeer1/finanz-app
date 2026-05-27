@@ -15,8 +15,14 @@ export default async function BudgetsPage({
   const params = await searchParams;
 
   const now = new Date();
-  const month = params.month ? Number(params.month) : now.getMonth() + 1;
-  const year = params.year ? Number(params.year) : now.getFullYear();
+  const parsedMonth = params.month ? Number(params.month) : NaN;
+  const parsedYear = params.year ? Number(params.year) : NaN;
+  const month = Number.isFinite(parsedMonth) && parsedMonth >= 1 && parsedMonth <= 12
+    ? parsedMonth
+    : now.getMonth() + 1;
+  const year = Number.isFinite(parsedYear) && parsedYear >= 2020 && parsedYear <= 2100
+    ? parsedYear
+    : now.getFullYear();
 
   const [categoriesResult, budgetsResult] = await Promise.all([
     getCategories("EXPENSE"),

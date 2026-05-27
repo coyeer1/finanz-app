@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useState, useTransition, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { DatePicker } from "@/components/shared/date-picker";
@@ -21,6 +21,7 @@ export function TransactionFilters({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [showFilters, setShowFilters] = useState(false);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const currentType = searchParams.get("type") ?? "";
   const currentCategory = searchParams.get("categoryId") ?? "";
@@ -88,9 +89,9 @@ export function TransactionFilters({
             defaultValue={currentSearch}
             onChange={(e) => {
               const val = e.target.value;
-              // Debounce manually
-              const timeout = setTimeout(() => updateFilter("search", val), 400);
-              return () => clearTimeout(timeout);
+              // Debounce with ref-based cleanup (onChange return value is discarded)
+              if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+              searchTimeoutRef.current = setTimeout(() => updateFilter("search", val), 400);
             }}
             className="input-underline pl-6 text-sm"
           />

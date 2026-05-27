@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { createCategory, updateCategory, deleteCategory } from "@/actions/categories";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -21,6 +21,14 @@ export function CategoriesClient({
 }: CategoriesClientProps) {
   const [expenseCategories, setExpenseCategories] = useState(initialExpense);
   const [incomeCategories, setIncomeCategories] = useState(initialIncome);
+
+  // Sync local state when server-provided props change (e.g. revalidation)
+  useEffect(() => {
+    setExpenseCategories(initialExpense);
+  }, [initialExpense]);
+  useEffect(() => {
+    setIncomeCategories(initialIncome);
+  }, [initialIncome]);
   const [formState, setFormState] = useState<FormMode | null>(null);
   const [formName, setFormName] = useState("");
   const [formIcon, setFormIcon] = useState("");

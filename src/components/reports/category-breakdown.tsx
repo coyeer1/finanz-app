@@ -41,7 +41,11 @@ export function CategoryBreakdownChart({
               axisLine={false}
               tickLine={false}
               tick={{ fill: "var(--text-muted)", fontSize: 11 }}
-              tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`}
+              tickFormatter={(v) => {
+                if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`;
+                if (v >= 1_000) return `${(v / 1_000).toFixed(0)}k`;
+                return String(v);
+              }}
             />
             <YAxis
               type="category"

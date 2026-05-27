@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Plus, Wallet, Landmark, CreditCard, PiggyBank, TrendingUp, X, Loader2, Trash2 } from "lucide-react";
 import { createAccount, deleteAccount, getAccounts, getTotalBalance } from "@/actions/accounts";
 import { CurrencyInput } from "@/components/shared/currency-input";
@@ -33,6 +33,14 @@ export function AccountsClient({
 }: AccountsClientProps) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [totalBalance, setTotalBalance] = useState(initialBalance);
+
+  // Sync local state when server-provided props change (e.g. revalidation)
+  useEffect(() => {
+    setAccounts(initialAccounts);
+  }, [initialAccounts]);
+  useEffect(() => {
+    setTotalBalance(initialBalance);
+  }, [initialBalance]);
   const [showForm, setShowForm] = useState(false);
   const [formName, setFormName] = useState("");
   const [formType, setFormType] = useState<string>("BANK");

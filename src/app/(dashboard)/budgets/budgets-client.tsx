@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -38,6 +38,11 @@ export function BudgetsClient({
 }: BudgetsClientProps) {
   const router = useRouter();
   const [budgets, setBudgets] = useState(initialBudgets);
+
+  // Sync budgets state when server-provided initialBudgets change (e.g. month navigation)
+  useEffect(() => {
+    setBudgets(initialBudgets);
+  }, [initialBudgets]);
   const [showForm, setShowForm] = useState(false);
   const [formCategoryId, setFormCategoryId] = useState("");
   const [formAmount, setFormAmount] = useState(0);
@@ -130,7 +135,7 @@ export function BudgetsClient({
   return (
     <>
       {/* Month navigator */}
-      <div className="animate-in animate-delay-1 flex items-center justify-between">
+      <div className="animate-in animate-delay-1 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <button
             onClick={() => navigateMonth(-1)}

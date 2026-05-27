@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { createOrganization } from "@/actions/auth";
 import { CURRENCIES } from "@/lib/constants";
 import { Building2, ChevronDown, Loader2 } from "lucide-react";
 
 export default function OnboardingPage() {
   const router = useRouter();
+  const { update: updateSession } = useSession();
   const [orgName, setOrgName] = useState("");
   const [currency, setCurrency] = useState("COP");
   const [error, setError] = useState("");
@@ -26,14 +28,18 @@ export default function OnboardingPage() {
       const result = await createOrganization(formData);
 
       if (!result.success) {
-        setError(result.error ?? "Error al crear la organización");
+        setError(result.error ?? "Error al crear la organizacion");
         setLoading(false);
         return;
       }
 
+      // Update the JWT token with the new organizationId so the proxy
+      // doesn't redirect back to /onboarding
+      await updateSession({ organizationId: result.organizationId });
+
       router.push("/dashboard");
     } catch {
-      setError("Ocurrió un error. Intenta de nuevo.");
+      setError("Ocurrio un error. Intenta de nuevo.");
       setLoading(false);
     }
   }

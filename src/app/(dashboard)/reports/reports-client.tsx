@@ -27,12 +27,25 @@ const IncomeVsExpenseChart = dynamic(
 
 type EntityFilter = "all" | "personal" | "empresa";
 
+function getInitialDates() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth(); // 0-indexed
+  const from = new Date(y, m, 1);
+  const to = new Date(y, m + 1, 0);
+  return {
+    from: from.toISOString().split("T")[0],
+    to: to.toISOString().split("T")[0],
+  };
+}
+
 export function ReportsClient() {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const initial = getInitialDates();
+  const [dateFrom, setDateFrom] = useState<string>(initial.from);
+  const [dateTo, setDateTo] = useState<string>(initial.to);
   const [entity, setEntity] = useState<EntityFilter>("all");
   const [breakdown, setBreakdown] = useState<CategoryBreakdown[]>([]);
   const [trends, setTrends] = useState<MonthlyTrend[]>([]);

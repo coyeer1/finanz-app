@@ -34,10 +34,12 @@ export function OrganizationClient({
   const [orgName, setOrgName] = useState(organization?.name ?? "");
   const [currency, setCurrency] = useState(organization?.currency ?? "COP");
   const [saveMessage, setSaveMessage] = useState("");
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("MEMBER");
   const [inviteMessage, setInviteMessage] = useState("");
+  const [inviteSuccess, setInviteSuccess] = useState(false);
   const [inviting, setInviting] = useState(false);
 
   async function handleSave() {
@@ -45,10 +47,12 @@ export function OrganizationClient({
       const result = await updateOrganization({ name: orgName, currency });
       if (result.success) {
         setSaveMessage("Guardado");
+        setSaveSuccess(true);
         setTimeout(() => setSaveMessage(""), 2000);
         router.refresh();
       } else {
         setSaveMessage(result.error ?? "Error al guardar");
+        setSaveSuccess(false);
       }
     });
   }
@@ -58,10 +62,12 @@ export function OrganizationClient({
     setInviting(true);
     const result = await createInviteToken(inviteEmail, inviteRole);
     if (result.success) {
-      setInviteMessage("Invitación creada. Comparte el link con el usuario.");
+      setInviteMessage("Invitacion creada. Comparte el link con el usuario.");
+      setInviteSuccess(true);
       setInviteEmail("");
     } else {
       setInviteMessage(result.error ?? "Error al invitar");
+      setInviteSuccess(false);
     }
     setInviting(false);
     setTimeout(() => setInviteMessage(""), 5000);
@@ -122,7 +128,7 @@ export function OrganizationClient({
               Guardar
             </button>
             {saveMessage && (
-              <span className="text-xs text-accent-primary">{saveMessage}</span>
+              <span className={`text-xs ${saveSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{saveMessage}</span>
             )}
           </div>
         </div>
@@ -211,7 +217,7 @@ export function OrganizationClient({
         </div>
 
         {inviteMessage && (
-          <p className="text-xs text-accent-primary">{inviteMessage}</p>
+          <p className={`text-xs ${inviteSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{inviteMessage}</p>
         )}
       </div>
     </div>

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { signOut, useSession } from "next-auth/react";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -20,6 +21,7 @@ import {
 } from "lucide-react";
 import { useTheme } from "@/components/shared/theme-provider";
 import { cn } from "@/lib/utils";
+import { getInitials } from "@/lib/utils";
 
 const STORAGE_KEY = "finanzapp-sidebar-collapsed";
 
@@ -44,7 +46,12 @@ interface SidebarProps {
 export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
   const pathname = usePathname();
   const { theme, toggleTheme } = useTheme();
+  const { data: session } = useSession();
   const [collapsed, setCollapsed] = useState(false);
+
+  const userName = session?.user?.name ?? "Usuario";
+  const userEmail = session?.user?.email ?? "";
+  const userInitials = getInitials(userName);
 
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -155,15 +162,15 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
         {/* User */}
         <div className="flex items-center gap-2 px-2 min-w-0">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-bg-tertiary text-xs font-medium text-text-secondary">
-            U
+            {userInitials}
           </div>
           {!collapsed && (
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium text-text-primary">
-                Usuario
+                {userName}
               </p>
               <p className="truncate text-xs text-text-muted">
-                usuario@email.com
+                {userEmail}
               </p>
             </div>
           )}
@@ -180,6 +187,7 @@ export function Sidebar({ mobileOpen = false, onMobileClose }: SidebarProps) {
             {theme === "dark" ? <Sun size={16} /> : <Moon size={16} />}
           </button>
           <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
             className="flex h-8 w-8 items-center justify-center rounded-[var(--radius-md)] text-text-muted hover:text-accent-danger hover:bg-bg-hover transition-colors"
             aria-label="Cerrar sesion"
             title="Cerrar sesion"
