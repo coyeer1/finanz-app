@@ -7,13 +7,14 @@ PWA de finanzas personales y empresariales.
 - **Framework:** Next.js 16 (App Router, Server Components, Server Actions, Turbopack)
 - **Lenguaje:** TypeScript strict mode
 - **ORM:** Prisma v7 con PostgreSQL (Supabase) via `@prisma/adapter-pg`
-- **Auth:** NextAuth v5 (Auth.js) — Google OAuth + Credentials (bcryptjs)
+- **Auth:** NextAuth v5 (Auth.js) — Google OAuth + Credentials (bcryptjs v3, import como `import * as bcrypt from "bcryptjs"`)
 - **Estilos:** Tailwind CSS v4 con design system custom "Precision Finance"
-- **Charts:** Recharts (lazy loaded con `dynamic()`)
+- **Charts:** Recharts (lazy loaded con `dynamic()` — SOLO en Client Components)
 - **State:** Zustand (client state mínimo)
-- **Validación:** Zod v4 (schemas compartidos client/server)
+- **Validación:** Zod v4 (usa `{ error: "..." }` en vez de `{ required_error: "..." }`)
 - **PWA:** @ducanh2912/next-pwa
 - **Deploy:** Vercel
+- **MCPs configurados:** Supabase, Playwright (Firefox), Vercel — config en `~/.mcp.json`
 
 ## Comandos
 
@@ -24,6 +25,7 @@ npm run db:push      # Push schema a Supabase
 npm run db:seed      # Seed con datos de demo (tsx prisma/seed.ts)
 npm run db:studio    # Prisma Studio (visual DB editor)
 vercel deploy --prod # Deploy a producción
+git push origin main # Push a GitHub (auto-deploy NO configurado)
 ```
 
 ## Estructura del proyecto
@@ -42,19 +44,19 @@ src/
 │   │   └── settings/     # Config usuario + organización
 │   ├── (marketing)/      # Landing, pricing, features (público)
 │   ├── api/auth/         # NextAuth route handler
-│   └── onboarding/       # Flujo post-registro
+│   └── onboarding/       # Flujo post-registro (protegido, requiere auth)
 ├── actions/              # Server Actions (todos con "use server")
 ├── components/
-│   ├── dashboard/        # Stats, charts, sidebar, topbar
+│   ├── dashboard/        # Stats, charts, sidebar, topbar, dashboard-shell
 │   ├── transactions/     # Table, form, filters
 │   ├── reports/          # Period selector, breakdown charts
 │   ├── marketing/        # Hero, features grid, pricing
-│   └── shared/           # Theme provider, skeletons, inputs
+│   └── shared/           # Providers, theme-provider, skeletons, inputs
 ├── lib/                  # prisma.ts, auth.ts, utils.ts, constants.ts
 ├── schemas/              # Zod schemas (transaction, budget, category, account)
 ├── hooks/                # Zustand stores
 ├── types/                # TypeScript types + next-auth.d.ts
-└── proxy.ts              # Auth middleware (Next.js 16 "proxy" convention)
+└── proxy.ts              # Auth proxy (Next.js 16 convention, protege TODAS las rutas dashboard)
 ```
 
 ## Arquitectura clave
@@ -64,9 +66,15 @@ Cada query de Prisma filtra por `organizationId`. Los helpers `getOrganizationId
 
 ### Auth flow
 1. Usuario se registra → se crea `User` sin `Organization`
-2. Proxy middleware redirige a `/onboarding` si no tiene org
+2. Proxy redirige a `/onboarding` si no tiene org (protege /dashboard, /transactions, /budgets, /categories, /accounts, /reports, /settings)
 3. En onboarding: crea org, se asigna como OWNER, se crean categorías + cuentas default
-4. Redirect a `/dashboard`
+4. Se actualiza el JWT con `updateSession({ organizationId })` para evitar redirect loop
+5. Redirect a `/dashboard`
+
+### Providers (root layout)
+`src/components/shared/providers.tsx` envuelve la app con:
+- `SessionProvider` (next-auth/react) — necesario para `useSession()` y `signOut()` en client components
+- `ThemeProvider` — dark/light mode con localStorage
 
 ### Server Actions
 Todos en `src/actions/`. Cada uno:
@@ -76,16 +84,27 @@ Todos en `src/actions/`. Cada uno:
 - Retorna `{ success: boolean, error?: string, data?: any }`
 - Llama `revalidatePath()` después de mutaciones
 
+### Client Components con datos del server
+Patrón: Server Component fetch → pasa data a Client Component via props → Client Component usa `useEffect` para sincronizar state cuando props cambian. No usar solo `useState(initialValue)` porque React no lo re-inicializa en re-renders.
+
 ### Prisma v7
-- Usa `@prisma/adapter-pg` (no `datasourceUrl`)
-- Config en `prisma.config.ts` (no en schema)
+- Usa `@prisma/adapter-pg` (no `datasourceUrl` — eliminado en v7)
+- Config en `prisma.config.ts` (no en schema, sin `earlyAccess`)
+- Datasource en schema: solo `provider = "postgresql"` (sin url/directUrl)
 - Connection string: transaction pooler de Supabase (puerto 6543 + `?pgbouncer=true`)
 
 ### Next.js 16 (diferencias clave)
-- `middleware.ts` se renombró a `proxy.ts`, exporta `proxy()` (no default)
-- `searchParams` es `Promise` — hay que hacer `await searchParams`
-- `dynamic()` con `ssr: false` solo funciona en Client Components
-- Turbopack es el bundler por defecto — config en `turbopack: {}` dentro de next.config.ts
+- `middleware.ts` se renombró a `proxy.ts`, exporta `export async function proxy(request)` (no default export)
+- `searchParams` es `Promise` — hay que hacer `const params = await searchParams`
+- `dynamic()` con `ssr: false` solo funciona en Client Components — usar wrapper component
+- Turbopack es el bundler por defecto — necesita `turbopack: {}` en next.config.ts si hay config webpack (PWA plugin)
+- `suppressHydrationMismatch` no existe en `<html>` — no usarlo
+
+### Sidebar
+- Collapsed state se guarda en localStorage (`finanzapp-sidebar-collapsed`)
+- `dashboard-shell.tsx` lee ese valor y ajusta `--sidebar-offset` CSS var
+- En mobile: sidebar es overlay con backdrop, topbar visible con hamburguesa
+- Main content tiene `pt-14 md:pt-0` para no quedar oculto bajo topbar mobile
 
 ## Design System "Precision Finance"
 
@@ -122,34 +141,49 @@ Todos en `src/actions/`. Cada uno:
 ### Supabase
 - Proyecto: `ugrbxjpzjmyfnrxsjuio`
 - Región: us-west-2
-- Pooler: `aws-1-us-west-2.pooler.supabase.com`
+- Pooler host: `aws-1-us-west-2.pooler.supabase.com` (NO us-east-1)
+- Transaction mode: puerto 6543, Session mode: puerto 5432
 - RLS: deshabilitado (Prisma conecta como service role)
+- Direct connection: solo IPv6 (no funciona desde máquinas sin IPv6)
 
 ### Tablas principales
-- `Organization` — multi-tenant, plan FREE/PRO/ENTERPRISE
-- `User` — con role OWNER/ADMIN/MEMBER/VIEWER
-- `Account` — cuentas financieras (banco, efectivo, tarjeta, etc.)
-- `Category` — categorías de ingreso/gasto con ícono y color
-- `Transaction` — con soft delete (`deletedAt`), toggle personal/empresa
-- `Budget` — presupuesto mensual por categoría
+- `Organization` — multi-tenant, plan FREE/PRO/ENTERPRISE, campo `currency`
+- `User` — con role OWNER/ADMIN/MEMBER/VIEWER, `organizationId` nullable (null hasta onboarding)
+- `Account` — cuentas financieras (banco, efectivo, tarjeta, etc.), `currentBalance` se actualiza automáticamente
+- `Category` — categorías de ingreso/gasto con ícono lucide y color hex
+- `Transaction` — con soft delete (`deletedAt`), toggle `isPersonal`
+- `Budget` — presupuesto mensual por categoría, `spent` se calcula dinámicamente
 - `InviteToken` — invitaciones con expiración 24h
 
-### Credenciales de demo
-- Email: `demo@finanzapp.com`
-- Password: `password123`
+### Usuarios
+- **Owner:** thenshikibi@gmail.com (org: Finanzas Personales)
+- **Miembros:** theroutke@gmail.com (Twixper), juangonarias@gmail.com (Juanito)
+- **Demo:** demo@finanzapp.com / password123 (org: Demo Company)
 
 ## URLs
 
 - **Producción:** https://finanz-app-kappa.vercel.app
 - **Repo:** https://github.com/coyeer1/finanz-app
 - **Supabase:** https://supabase.com/dashboard/project/ugrbxjpzjmyfnrxsjuio
+- **Vercel:** https://vercel.com/cristhianjuan123-2913s-projects/finanz-app
+
+## Bugs conocidos resueltos
+
+- bcryptjs v3: importar como `import * as bcrypt from "bcryptjs"` (no default import)
+- Onboarding redirect loop: después de crear org, llamar `updateSession()` para refrescar JWT
+- Supabase pooler: host es `aws-1-us-west-2`, NO `aws-0-us-east-1`
+- Client state stale: usar `useEffect` para sincronizar props del server, no solo `useState(initial)`
+- Chart Y-axis: usar formato adaptativo (M/k/plain) para soportar diferentes monedas
 
 ## Pendiente / Roadmap
 
-- [ ] Google OAuth (requiere configurar Google Cloud Console)
+- [ ] Google OAuth (requiere configurar Google Cloud Console + GOOGLE_CLIENT_ID/SECRET en Vercel)
 - [ ] Upload de recibos (Supabase Storage)
-- [ ] Stripe para plan Pro
-- [ ] Notificaciones por email (Resend ya preparado)
+- [ ] Stripe para plan Pro (webhook endpoint ya existe en /api/webhooks/stripe)
+- [ ] Notificaciones por email (Resend preparado, falta RESEND_API_KEY)
 - [ ] Analytics (Plausible/Umami placeholder)
 - [ ] Rate limiting (Upstash)
-- [ ] Dominio custom
+- [ ] Dominio custom (configurar en Vercel + actualizar NEXTAUTH_URL y NEXT_PUBLIC_APP_URL)
+- [ ] Tests (unit + e2e con Playwright)
+- [ ] PWA icons reales (actualmente son placeholders 1x1px)
+- [ ] OG image real para SEO
