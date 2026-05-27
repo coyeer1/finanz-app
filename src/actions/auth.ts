@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
 import { DEFAULT_CATEGORIES } from "@/lib/constants";
-import bcrypt from "bcryptjs";
+import * as bcrypt from "bcryptjs";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 
