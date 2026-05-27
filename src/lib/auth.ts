@@ -28,50 +28,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        try {
-          const parsed = loginSchema.safeParse(credentials);
-          if (!parsed.success) {
-            console.error("[auth] Zod validation failed:", parsed.error.message);
-            return null;
-          }
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) return null;
 
-          console.log("[auth] Looking up user:", parsed.data.email);
-          const user = await prisma.user.findUnique({
-            where: { email: parsed.data.email },
-          });
+        const user = await prisma.user.findUnique({
+          where: { email: parsed.data.email },
+        });
 
-          if (!user) {
-            console.error("[auth] User not found");
-            return null;
-          }
+        if (!user || !user.hashedPassword) return null;
 
-          if (!user.hashedPassword) {
-            console.error("[auth] User has no password (OAuth only)");
-            return null;
-          }
+        const isValid = await bcrypt.compare(
+          parsed.data.password,
+          user.hashedPassword
+        );
 
-          console.log("[auth] User found, comparing password...");
-          const isValid = await bcrypt.compare(
-            parsed.data.password,
-            user.hashedPassword
-          );
+        if (!isValid) return null;
 
-          if (!isValid) {
-            console.error("[auth] Password mismatch");
-            return null;
-          }
-
-          console.log("[auth] Login successful for:", user.email);
-          return {
-            id: user.id,
-            name: user.name,
-            email: user.email,
-            image: user.image,
-          };
-        } catch (error) {
-          console.error("[auth] authorize error:", error);
-          return null;
-        }
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          image: user.image,
+        };
       },
     }),
   ],

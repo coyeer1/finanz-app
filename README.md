@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FinanzApp
 
-## Getting Started
+PWA de finanzas personales y empresariales. Controla ingresos, gastos, presupuestos y reportes. Separa finanzas personales y de empresa. Multiusuario.
 
-First, run the development server:
+**Live:** https://finanz-app-kappa.vercel.app
+
+## Stack
+
+Next.js 16 · TypeScript · Prisma v7 · PostgreSQL (Supabase) · NextAuth v5 · Tailwind CSS v4 · Recharts · Zustand · PWA
+
+## Quick Start
 
 ```bash
+# Clonar e instalar
+git clone https://github.com/coyeer1/finanz-app.git
+cd finanz-app
+npm install
+
+# Configurar variables de entorno
+cp .env.example .env
+# Editar .env con tus credenciales de Supabase
+
+# Push schema a la DB
+npm run db:push
+
+# Seed con datos de demo
+npm run db:seed
+
+# Dev server
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Demo
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **Email:** demo@finanzapp.com
+- **Password:** password123
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Features
 
-## Learn More
+- Transacciones (CRUD completo con filtros, paginación cursor-based, soft delete)
+- Cuentas financieras (banco, efectivo, tarjeta, ahorros, inversión)
+- Categorías personalizables con íconos y colores
+- Presupuestos mensuales con barras de progreso
+- Dashboard con KPIs, gráficos de tendencia y breakdown por categoría
+- Reportes con export a CSV
+- Toggle personal / empresa en toda la app
+- Multi-tenant con roles (Owner, Admin, Member, Viewer)
+- Sistema de invitaciones por email
+- Auth con Google OAuth + email/password
+- Dark mode por defecto, light mode disponible
+- PWA instalable
+- SEO completo (sitemap, robots, JSON-LD, OG tags)
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
