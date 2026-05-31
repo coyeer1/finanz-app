@@ -12,14 +12,18 @@ export const transactionSchema = z.object({
   notes: z.string().max(500).optional().nullable(),
   date: z.coerce.date({ error: "La fecha es requerida" }),
   isPersonal: z.boolean().default(true),
-  categoryId: z.string({ error: "Selecciona una categoría" }).cuid(),
-  accountId: z.string({ error: "Selecciona una cuenta" }).cuid(),
+  categoryId: z
+    .string({ error: "Selecciona una categoría" })
+    .min(1, "Selecciona una categoría"),
+  accountId: z
+    .string({ error: "Selecciona una cuenta" })
+    .min(1, "Selecciona una cuenta"),
 });
 
 export const transactionFilterSchema = z.object({
   type: z.enum(["INCOME", "EXPENSE", "TRANSFER"]).optional(),
-  categoryId: z.string().cuid().optional(),
-  accountId: z.string().cuid().optional(),
+  categoryId: z.string().min(1).optional(),
+  accountId: z.string().min(1).optional(),
   isPersonal: z.boolean().optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),

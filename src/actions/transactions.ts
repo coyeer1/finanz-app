@@ -158,7 +158,8 @@ export async function createTransaction(data: unknown) {
       return { success: false, error: "Categoria no encontrada" };
     }
 
-    const balanceChange = type === "INCOME" ? amount : -amount;
+    const balanceChange =
+      type === "INCOME" ? amount : type === "EXPENSE" ? -amount : 0;
 
     const [transaction] = await prisma.$transaction([
       prisma.transaction.create({
@@ -249,12 +250,17 @@ export async function updateTransaction(id: string, data: unknown) {
       return { success: false, error: "Categoria no encontrada" };
     }
 
-    // Reverse old amount on old account
+    // Reverse old amount on old account (TRANSFER es neutral)
     const oldBalanceReverse =
-      existing.type === "INCOME" ? -Number(existing.amount) : Number(existing.amount);
+      existing.type === "INCOME"
+        ? -Number(existing.amount)
+        : existing.type === "EXPENSE"
+          ? Number(existing.amount)
+          : 0;
 
-    // Apply new amount on new account
-    const newBalanceChange = type === "INCOME" ? amount : -amount;
+    // Apply new amount on new account (TRANSFER es neutral)
+    const newBalanceChange =
+      type === "INCOME" ? amount : type === "EXPENSE" ? -amount : 0;
 
     const operations = [];
 
@@ -340,9 +346,13 @@ export async function deleteTransaction(id: string) {
       return { success: false, error: "Transaccion no encontrada" };
     }
 
-    // Reverse the amount on the account
+    // Reverse the amount on the account (TRANSFER es neutral)
     const balanceReverse =
-      existing.type === "INCOME" ? -Number(existing.amount) : Number(existing.amount);
+      existing.type === "INCOME"
+        ? -Number(existing.amount)
+        : existing.type === "EXPENSE"
+          ? Number(existing.amount)
+          : 0;
 
     await prisma.$transaction([
       prisma.transaction.update({

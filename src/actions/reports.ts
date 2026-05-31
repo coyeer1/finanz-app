@@ -41,23 +41,33 @@ export async function getDashboardStats(isPersonal?: boolean) {
       baseWhere.isPersonal = isPersonal;
     }
 
-    // Total balance from all active accounts
-    const balanceResult = await prisma.account.aggregate({
-      where: { organizationId, isActive: true },
-      _sum: { currentBalance: true },
-    });
-    const totalBalance = Number(balanceResult._sum.currentBalance ?? 0);
+    // Las 3 agregaciones en paralelo (1 round-trip en vez de 3 en serie)
+    const [balanceResult, currentMonthAgg, prevMonthAgg] = await Promise.all([
+      prisma.account.aggregate({
+        where: { organizationId, isActive: true },
+        _sum: { currentBalance: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: {
+          ...baseWhere,
+          date: { gte: currentMonthStart, lte: currentMonthEnd },
+          type: { in: ["INCOME", "EXPENSE"] },
+        },
+        _sum: { amount: true },
+      }),
+      prisma.transaction.groupBy({
+        by: ["type"],
+        where: {
+          ...baseWhere,
+          date: { gte: prevMonthStart, lte: prevMonthEnd },
+          type: { in: ["INCOME", "EXPENSE"] },
+        },
+        _sum: { amount: true },
+      }),
+    ]);
 
-    // Current month income & expense
-    const currentMonthAgg = await prisma.transaction.groupBy({
-      by: ["type"],
-      where: {
-        ...baseWhere,
-        date: { gte: currentMonthStart, lte: currentMonthEnd },
-        type: { in: ["INCOME", "EXPENSE"] },
-      },
-      _sum: { amount: true },
-    });
+    const totalBalance = Number(balanceResult._sum.currentBalance ?? 0);
 
     const monthIncome = Number(
       currentMonthAgg.find(
@@ -69,17 +79,6 @@ export async function getDashboardStats(isPersonal?: boolean) {
         (a: typeof currentMonthAgg[number]) => a.type === "EXPENSE"
       )?._sum.amount ?? 0
     );
-
-    // Previous month income & expense
-    const prevMonthAgg = await prisma.transaction.groupBy({
-      by: ["type"],
-      where: {
-        ...baseWhere,
-        date: { gte: prevMonthStart, lte: prevMonthEnd },
-        type: { in: ["INCOME", "EXPENSE"] },
-      },
-      _sum: { amount: true },
-    });
 
     const prevIncome = Number(
       prevMonthAgg.find(
@@ -125,43 +124,44 @@ export async function getMonthlyTrends(months: number = 6) {
     const organizationId = await getOrganizationId();
 
     const now = new Date();
-    const results: { month: string; income: number; expense: number }[] = [];
+    const rangeStart = new Date(
+      now.getFullYear(),
+      now.getMonth() - (months - 1),
+      1
+    );
 
+    // Una sola query agrupada por mes en vez de N round-trips a la DB
+    const rows = await prisma.$queryRaw<
+      { ym: string; type: string; total: number }[]
+    >`
+      SELECT to_char(date_trunc('month', "date"), 'YYYY-MM') AS ym,
+             "type",
+             COALESCE(SUM("amount"), 0)::float8 AS total
+      FROM "Transaction"
+      WHERE "organizationId" = ${organizationId}
+        AND "deletedAt" IS NULL
+        AND "type" IN ('INCOME', 'EXPENSE')
+        AND "date" >= ${rangeStart}
+      GROUP BY 1, 2
+    `;
+
+    const byMonth = new Map<string, { income: number; expense: number }>();
+    for (const r of rows) {
+      const entry = byMonth.get(r.ym) ?? { income: 0, expense: 0 };
+      if (r.type === "INCOME") entry.income = Number(r.total);
+      else entry.expense = Number(r.total);
+      byMonth.set(r.ym, entry);
+    }
+
+    const results: { month: string; income: number; expense: number }[] = [];
     for (let i = months - 1; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(
-        date.getFullYear(),
-        date.getMonth() + 1,
-        0,
-        23,
-        59,
-        59,
-        999
-      );
-
-      const agg = await prisma.transaction.groupBy({
-        by: ["type"],
-        where: {
-          organizationId,
-          deletedAt: null,
-          date: { gte: monthStart, lte: monthEnd },
-          type: { in: ["INCOME", "EXPENSE"] },
-        },
-        _sum: { amount: true },
-      });
-
-      const monthIndex = date.getMonth();
-      const monthLabel = `${MONTHS[monthIndex].slice(0, 3)} ${date.getFullYear()}`;
-
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const entry = byMonth.get(key) ?? { income: 0, expense: 0 };
       results.push({
-        month: monthLabel,
-        income: Number(
-          agg.find((a: typeof agg[number]) => a.type === "INCOME")?._sum.amount ?? 0
-        ),
-        expense: Number(
-          agg.find((a: typeof agg[number]) => a.type === "EXPENSE")?._sum.amount ?? 0
-        ),
+        month: `${MONTHS[date.getMonth()].slice(0, 3)} ${date.getFullYear()}`,
+        income: entry.income,
+        expense: entry.expense,
       });
     }
 
