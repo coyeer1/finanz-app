@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Save, UserPlus, Loader2 } from "lucide-react";
-import { updateOrganization, createInviteToken } from "@/actions/organization";
+import {
+  updateOrganization,
+  createInviteToken,
+  updateMemberRole,
+} from "@/actions/organization";
 import { CURRENCIES, ROLES } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
 import { usePermissions } from "@/hooks/use-permissions";
@@ -29,9 +33,11 @@ export function OrganizationClient({
   organization,
   members,
 }: OrganizationClientProps) {
-  const { canManageOrg } = usePermissions();
+  const { canManageOrg, userId } = usePermissions();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [roleUpdatingId, setRoleUpdatingId] = useState<string | null>(null);
+  const [roleError, setRoleError] = useState("");
 
   const [orgName, setOrgName] = useState(organization?.name ?? "");
   const [currency, setCurrency] = useState(organization?.currency ?? "COP");
@@ -73,6 +79,19 @@ export function OrganizationClient({
     }
     setInviting(false);
     setTimeout(() => setInviteMessage(""), 5000);
+  }
+
+  async function handleRoleChange(memberId: string, newRole: string) {
+    setRoleUpdatingId(memberId);
+    setRoleError("");
+    const result = await updateMemberRole(memberId, newRole);
+    if (result.success) {
+      router.refresh();
+    } else {
+      setRoleError(result.error ?? "Error al cambiar el rol");
+      setTimeout(() => setRoleError(""), 4000);
+    }
+    setRoleUpdatingId(null);
   }
 
   if (!organization) {
@@ -176,12 +195,40 @@ export function OrganizationClient({
                   )}
                 </div>
               </div>
-              <span className="text-xs text-text-muted uppercase tracking-wider">
-                {ROLES.find((r) => r.value === member.role)?.label ?? member.role}
-              </span>
+              {canManageOrg &&
+              member.role !== "OWNER" &&
+              member.id !== userId ? (
+                <div className="flex items-center gap-2">
+                  {roleUpdatingId === member.id && (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin text-text-muted" />
+                  )}
+                  <select
+                    value={member.role}
+                    disabled={roleUpdatingId === member.id}
+                    onChange={(e) => handleRoleChange(member.id, e.target.value)}
+                    className="input-underline bg-transparent text-xs py-1 disabled:opacity-50"
+                    aria-label={`Rol de ${member.name ?? member.email}`}
+                  >
+                    {ROLES.filter((r) => r.value !== "OWNER").map((r) => (
+                      <option key={r.value} value={r.value}>
+                        {r.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <span className="text-xs text-text-muted uppercase tracking-wider">
+                  {ROLES.find((r) => r.value === member.role)?.label ??
+                    member.role}
+                </span>
+              )}
             </div>
           ))}
         </div>
+
+        {roleError && (
+          <p className="text-xs text-accent-danger">{roleError}</p>
+        )}
       </div>
 
       {canManageOrg && (

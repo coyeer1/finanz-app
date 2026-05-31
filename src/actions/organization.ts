@@ -19,6 +19,12 @@ const inviteSchema = z.object({
   role: z.enum(["ADMIN", "MEMBER", "VIEWER"]),
 });
 
+// OWNER no es asignable desde aqui (la transferencia de propiedad es aparte)
+const updateRoleSchema = z.object({
+  userId: z.string().min(1),
+  role: z.enum(["ADMIN", "MEMBER", "VIEWER"]),
+});
+
 export async function getOrganization() {
   try {
     await requireAuth();
@@ -115,6 +121,54 @@ export async function getOrganizationMembers() {
         error instanceof Error
           ? error.message
           : "Error al obtener los miembros",
+    };
+  }
+}
+
+export async function updateMemberRole(userId: string, role: string) {
+  try {
+    const currentUser = await requireAdminAccess();
+    const organizationId = await getOrganizationId();
+
+    const parsed = updateRoleSchema.safeParse({ userId, role });
+    if (!parsed.success) {
+      return { success: false, error: parsed.error.issues[0].message };
+    }
+
+    // No puedes cambiar tu propio rol (evita auto-bloqueo)
+    if (userId === currentUser.id) {
+      return { success: false, error: "No puedes cambiar tu propio rol" };
+    }
+
+    // El miembro debe pertenecer a la misma organizacion
+    const member = await prisma.user.findFirst({
+      where: { id: userId, organizationId },
+      select: { id: true, role: true },
+    });
+    if (!member) {
+      return { success: false, error: "Miembro no encontrado" };
+    }
+
+    // El rol del propietario no se puede cambiar desde aqui
+    if (member.role === "OWNER") {
+      return {
+        success: false,
+        error: "No se puede cambiar el rol del propietario",
+      };
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { role: parsed.data.role },
+    });
+
+    revalidatePath("/settings/organization");
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Error al cambiar el rol",
     };
   }
 }

@@ -14,6 +14,7 @@ export function usePermissions() {
 
   return {
     role,
+    userId: data?.user?.id,
     // VIEWER no puede crear/editar/eliminar datos
     canWrite: role !== "VIEWER",
     // Solo OWNER/ADMIN gestionan la organizacion (ajustes, invitaciones)

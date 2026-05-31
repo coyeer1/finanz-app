@@ -211,7 +211,6 @@ IMPORTANTE: el rol vive en el JWT (se setea en login desde la DB). Si cambias el
 ## Hallazgos de auditoría PENDIENTES (no aplicados aún)
 
 - **acceptInvite no refresca JWT**: tras aceptar invitación falta `updateSession()` → el usuario queda en loop de onboarding (mismo patrón ya resuelto en onboarding).
-- **No hay UI para cambiar el rol de un miembro existente** (solo se asigna al invitar). Falta en settings/organization.
 - **CurrencyInput no acepta decimales** para monedas no-COP (borra todos los puntos). Mantener string crudo en foco, formatear en blur.
 - **FOUC de tema**: `<html>` tiene `dark` hardcodeado; usuarios en modo claro ven flash oscuro. Inyectar script bloqueante en `<head>` que lea localStorage antes de pintar.
 
@@ -221,6 +220,7 @@ IMPORTANTE: el rol vive en el JWT (se setea en login desde la DB). Si cambias el
 - ✅ Eliminar transacciones: botón "Eliminar" dentro del modal de edición, confirmación en dos pasos. Revierte el balance de la cuenta.
 - ✅ Moneda según organización en dashboard, transacciones, presupuestos, cuentas y reportes.
 - ✅ Control de roles (RBAC): servidor (requireWriteAccess/requireAdminAccess) + UI (usePermissions).
+- ✅ Cambiar el rol de un miembro desde Ajustes → Organización (`updateMemberRole`, solo ADMIN/OWNER, no toca OWNER ni el propio rol). El miembro debe re-loguear para que su JWT refleje el nuevo rol.
 
 ## Pendiente / Roadmap
 
