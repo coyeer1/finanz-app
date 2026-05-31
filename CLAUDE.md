@@ -191,10 +191,27 @@ Patrón: Server Component fetch → pasa data a Client Component via props → C
 - Excepción: las cuentas individuales usan SU propia moneda (`account.currency`), no la de la org — una cuenta puede estar en USD aunque la org sea COP. El "Balance total" sí usa la moneda de la org.
 - `CurrencyInput` de transacciones usa la moneda de la cuenta seleccionada; el de presupuestos usa la de la org.
 
+## Control de roles (RBAC)
+
+Roles: OWNER, ADMIN, MEMBER, VIEWER. Modelo de permisos:
+- **VIEWER**: solo lectura. No puede crear/editar/eliminar nada.
+- **MEMBER**: CRUD de datos financieros (transacciones, presupuestos, categorías, cuentas). NO gestiona la org.
+- **ADMIN / OWNER**: lo anterior + ajustes de organización + invitaciones.
+
+Helpers en `lib/auth.ts`:
+- `requireWriteAccess()` → bloquea VIEWER. Usar en TODA mutación de datos (transactions/budgets/categories/accounts create/update/delete).
+- `requireAdminAccess()` → solo OWNER/ADMIN. Usar en updateOrganization, createInviteToken.
+- `requireRole(roles)` / `getUserRole()` → genéricos.
+- Las lecturas (`get*`) siguen con `requireAuth()` (todos pueden leer).
+
+Frontend: hook `usePermissions()` (en `hooks/use-permissions.ts`) lee el rol de `useSession()` y expone `canWrite` / `canManageOrg`. Los client components ocultan botones de crear/editar/eliminar según esos flags. La seguridad REAL está en el servidor; el ocultar botones es solo UX.
+
+IMPORTANTE: el rol vive en el JWT (se setea en login desde la DB). Si cambias el rol de un usuario en la DB, debe re-loguearse para que el JWT se actualice.
+
 ## Hallazgos de auditoría PENDIENTES (no aplicados aún)
 
-- **Sin checks de rol**: cualquier MEMBER/VIEWER puede editar la org, invitar miembros, borrar datos. Falta un helper `requireRole(["OWNER","ADMIN"])` en updateOrganization/createInviteToken.
 - **acceptInvite no refresca JWT**: tras aceptar invitación falta `updateSession()` → el usuario queda en loop de onboarding (mismo patrón ya resuelto en onboarding).
+- **No hay UI para cambiar el rol de un miembro existente** (solo se asigna al invitar). Falta en settings/organization.
 - **CurrencyInput no acepta decimales** para monedas no-COP (borra todos los puntos). Mantener string crudo en foco, formatear en blur.
 - **FOUC de tema**: `<html>` tiene `dark` hardcodeado; usuarios en modo claro ven flash oscuro. Inyectar script bloqueante en `<head>` que lea localStorage antes de pintar.
 
@@ -203,6 +220,7 @@ Patrón: Server Component fetch → pasa data a Client Component via props → C
 - ✅ Editar transacciones: clic en fila de la tabla → modal precargado (TransactionForm con `defaultValues`).
 - ✅ Eliminar transacciones: botón "Eliminar" dentro del modal de edición, confirmación en dos pasos. Revierte el balance de la cuenta.
 - ✅ Moneda según organización en dashboard, transacciones, presupuestos, cuentas y reportes.
+- ✅ Control de roles (RBAC): servidor (requireWriteAccess/requireAdminAccess) + UI (usePermissions).
 
 ## Pendiente / Roadmap
 

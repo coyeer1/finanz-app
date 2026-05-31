@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationId, requireAuth } from "@/lib/auth";
+import { getOrganizationId, requireAuth, requireWriteAccess } from "@/lib/auth";
 import { accountSchema } from "@/schemas/account";
 
 export async function getAccounts() {
@@ -71,7 +71,7 @@ export async function getAccount(id: string) {
 
 export async function createAccount(data: unknown) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = accountSchema.safeParse(data);
@@ -115,7 +115,7 @@ export async function createAccount(data: unknown) {
 
 export async function updateAccount(id: string, data: unknown) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = accountSchema.safeParse(data);
@@ -159,7 +159,7 @@ export async function updateAccount(id: string, data: unknown) {
 
 export async function deleteAccount(id: string) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const existing = await prisma.account.findFirst({

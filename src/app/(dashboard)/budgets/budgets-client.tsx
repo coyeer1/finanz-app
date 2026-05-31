@@ -22,6 +22,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { cn, formatCurrency, percentOf } from "@/lib/utils";
 import { MONTHS } from "@/lib/constants";
 import type { BudgetWithCategory, CategoryWithCount } from "@/types";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface BudgetsClientProps {
   categories: CategoryWithCount[];
@@ -38,6 +39,7 @@ export function BudgetsClient({
   year,
   currency,
 }: BudgetsClientProps) {
+  const { canWrite } = usePermissions();
   const router = useRouter();
   const [budgets, setBudgets] = useState(initialBudgets);
 
@@ -156,27 +158,29 @@ export function BudgetsClient({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleCopy}
-            disabled={copying}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-border-primary transition-colors disabled:opacity-50"
-          >
-            {copying ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-            ) : (
-              <Copy className="w-3.5 h-3.5" />
-            )}
-            Copiar del mes anterior
-          </button>
-          <button
-            onClick={() => setShowForm(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] bg-accent-primary text-white text-xs font-medium hover:opacity-90 transition-opacity"
-          >
-            <Plus className="w-3.5 h-3.5" />
-            Nuevo presupuesto
-          </button>
-        </div>
+        {canWrite && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopy}
+              disabled={copying}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-border-primary transition-colors disabled:opacity-50"
+            >
+              {copying ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Copy className="w-3.5 h-3.5" />
+              )}
+              Copiar del mes anterior
+            </button>
+            <button
+              onClick={() => setShowForm(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] bg-accent-primary text-white text-xs font-medium hover:opacity-90 transition-opacity"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Nuevo presupuesto
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Error */}
@@ -190,10 +194,14 @@ export function BudgetsClient({
       {budgets.length === 0 ? (
         <EmptyState
           variant="budgets"
-          action={{
-            label: "Crear presupuesto",
-            onClick: () => setShowForm(true),
-          }}
+          action={
+            canWrite
+              ? {
+                  label: "Crear presupuesto",
+                  onClick: () => setShowForm(true),
+                }
+              : undefined
+          }
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 animate-in animate-delay-2">
@@ -222,17 +230,19 @@ export function BudgetsClient({
                       {budget.category.name}
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleDelete(budget.id)}
-                    disabled={deletingId === budget.id}
-                    className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-hover transition-all"
-                  >
-                    {deletingId === budget.id ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : (
-                      <Trash2 className="w-3 h-3" />
-                    )}
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => handleDelete(budget.id)}
+                      disabled={deletingId === budget.id}
+                      className="opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-hover transition-all"
+                    >
+                      {deletingId === budget.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Trash2 className="w-3 h-3" />
+                      )}
+                    </button>
+                  )}
                 </div>
 
                 {/* Budget bar */}

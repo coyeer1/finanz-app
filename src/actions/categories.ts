@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationId, requireAuth } from "@/lib/auth";
+import { getOrganizationId, requireAuth, requireWriteAccess } from "@/lib/auth";
 import { categorySchema } from "@/schemas/category";
 
 export async function getCategories(type?: string) {
@@ -43,7 +43,7 @@ export async function getCategories(type?: string) {
 
 export async function createCategory(data: unknown) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = categorySchema.safeParse(data);
@@ -83,7 +83,7 @@ export async function createCategory(data: unknown) {
 
 export async function updateCategory(id: string, data: unknown) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = categorySchema.safeParse(data);
@@ -126,7 +126,7 @@ export async function updateCategory(id: string, data: unknown) {
 
 export async function deleteCategory(id: string) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const existing = await prisma.category.findFirst({

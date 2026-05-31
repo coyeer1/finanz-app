@@ -6,6 +6,7 @@ import { Save, UserPlus, Loader2 } from "lucide-react";
 import { updateOrganization, createInviteToken } from "@/actions/organization";
 import { CURRENCIES, ROLES } from "@/lib/constants";
 import { getInitials } from "@/lib/utils";
+import { usePermissions } from "@/hooks/use-permissions";
 
 interface OrganizationClientProps {
   organization: {
@@ -28,6 +29,7 @@ export function OrganizationClient({
   organization,
   members,
 }: OrganizationClientProps) {
+  const { canManageOrg } = usePermissions();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -95,7 +97,8 @@ export function OrganizationClient({
               type="text"
               value={orgName}
               onChange={(e) => setOrgName(e.target.value)}
-              className="input-underline"
+              disabled={!canManageOrg}
+              className="input-underline disabled:opacity-60"
             />
           </div>
 
@@ -104,7 +107,8 @@ export function OrganizationClient({
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
-              className="input-underline bg-transparent"
+              disabled={!canManageOrg}
+              className="input-underline bg-transparent disabled:opacity-60"
             >
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -114,23 +118,29 @@ export function OrganizationClient({
             </select>
           </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleSave}
-              disabled={isPending}
-              className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-bg-primary text-sm font-medium rounded-[var(--radius-md)] hover:opacity-90 transition-opacity disabled:opacity-50"
-            >
-              {isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              ) : (
-                <Save className="w-3.5 h-3.5" />
+          {canManageOrg ? (
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleSave}
+                disabled={isPending}
+                className="flex items-center gap-2 px-4 py-2 bg-accent-primary text-bg-primary text-sm font-medium rounded-[var(--radius-md)] hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                {isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Save className="w-3.5 h-3.5" />
+                )}
+                Guardar
+              </button>
+              {saveMessage && (
+                <span className={`text-xs ${saveSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{saveMessage}</span>
               )}
-              Guardar
-            </button>
-            {saveMessage && (
-              <span className={`text-xs ${saveSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{saveMessage}</span>
-            )}
-          </div>
+            </div>
+          ) : (
+            <p className="text-xs text-text-muted">
+              Solo los administradores pueden editar la organización.
+            </p>
+          )}
         </div>
       </div>
 
@@ -174,6 +184,7 @@ export function OrganizationClient({
         </div>
       </div>
 
+      {canManageOrg && (
       <div className="animate-in animate-delay-3 rounded-[var(--radius-lg)] border border-border-primary bg-bg-tertiary p-6 space-y-5">
         <h2 className="font-[family-name:var(--font-dm-sans)] font-medium text-sm text-text-primary">
           Invitar miembro
@@ -220,6 +231,7 @@ export function OrganizationClient({
           <p className={`text-xs ${inviteSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{inviteMessage}</p>
         )}
       </div>
+      )}
     </div>
   );
 }

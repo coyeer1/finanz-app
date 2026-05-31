@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Plus, Pencil, Trash2, X, Loader2 } from "lucide-react";
 import { createCategory, updateCategory, deleteCategory } from "@/actions/categories";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePermissions } from "@/hooks/use-permissions";
 import { cn } from "@/lib/utils";
 import { categorySchema, type CategoryFormData } from "@/schemas/category";
 import type { CategoryWithCount } from "@/types";
@@ -19,6 +20,7 @@ export function CategoriesClient({
   expenseCategories: initialExpense,
   incomeCategories: initialIncome,
 }: CategoriesClientProps) {
+  const { canWrite } = usePermissions();
   const [expenseCategories, setExpenseCategories] = useState(initialExpense);
   const [incomeCategories, setIncomeCategories] = useState(initialIncome);
 
@@ -151,19 +153,25 @@ export function CategoriesClient({
         <h2 className="font-[family-name:var(--font-dm-sans)] text-sm font-medium text-text-primary">
           {title}
         </h2>
-        <button
-          onClick={() => openCreate(type)}
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-md)] text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-border-primary transition-colors"
-        >
-          <Plus className="w-3 h-3" />
-          Nueva
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => openCreate(type)}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[var(--radius-md)] text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover border border-border-primary transition-colors"
+          >
+            <Plus className="w-3 h-3" />
+            Nueva
+          </button>
+        )}
       </div>
 
       {items.length === 0 ? (
         <EmptyState
           variant="categories"
-          action={{ label: "Crear categoria", onClick: () => openCreate(type) }}
+          action={
+            canWrite
+              ? { label: "Crear categoria", onClick: () => openCreate(type) }
+              : undefined
+          }
         />
       ) : (
         <div className="space-y-1">
@@ -188,25 +196,27 @@ export function CategoriesClient({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={() => openEdit(cat)}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-                >
-                  <Pencil className="w-3 h-3" />
-                </button>
-                <button
-                  onClick={() => handleDelete(cat.id)}
-                  disabled={deletingId === cat.id}
-                  className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-tertiary transition-colors"
-                >
-                  {deletingId === cat.id ? (
-                    <Loader2 className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <Trash2 className="w-3 h-3" />
-                  )}
-                </button>
-              </div>
+              {canWrite && (
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => openEdit(cat)}
+                    className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                  >
+                    <Pencil className="w-3 h-3" />
+                  </button>
+                  <button
+                    onClick={() => handleDelete(cat.id)}
+                    disabled={deletingId === cat.id}
+                    className="flex h-7 w-7 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-tertiary transition-colors"
+                  >
+                    {deletingId === cat.id ? (
+                      <Loader2 className="w-3 h-3 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3 h-3" />
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           ))}
         </div>

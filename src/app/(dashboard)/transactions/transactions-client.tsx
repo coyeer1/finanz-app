@@ -12,6 +12,7 @@ import {
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { EmptyState } from "@/components/shared/empty-state";
+import { usePermissions } from "@/hooks/use-permissions";
 import type {
   TransactionWithRelations,
   CategoryWithCount,
@@ -34,6 +35,7 @@ export function TransactionsClientWrapper({
   currency,
 }: TransactionsClientWrapperProps) {
   const searchParams = useSearchParams();
+  const { canWrite } = usePermissions();
   const [transactions, setTransactions] = useState<TransactionWithRelations[]>([]);
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
@@ -173,30 +175,36 @@ export function TransactionsClientWrapper({
   return (
     <>
       {/* New transaction button */}
-      <div className="flex justify-end animate-in animate-delay-1">
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-md)] bg-accent-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          Nueva transaccion
-        </button>
-      </div>
+      {canWrite && (
+        <div className="flex justify-end animate-in animate-delay-1">
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-md)] bg-accent-primary text-white text-sm font-medium hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-4 h-4" />
+            Nueva transaccion
+          </button>
+        </div>
+      )}
 
       {transactions.length === 0 ? (
         <EmptyState
           variant="transactions"
-          action={{
-            label: "Crear transaccion",
-            onClick: () => setShowForm(true),
-          }}
+          action={
+            canWrite
+              ? {
+                  label: "Crear transaccion",
+                  onClick: () => setShowForm(true),
+                }
+              : undefined
+          }
         />
       ) : (
         <TransactionTable
           transactions={transactions}
           hasMore={hasMore}
           onLoadMore={handleLoadMore}
-          onRowClick={setEditing}
+          onRowClick={canWrite ? setEditing : undefined}
           currency={currency}
         />
       )}

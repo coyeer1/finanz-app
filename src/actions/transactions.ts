@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationId, requireAuth } from "@/lib/auth";
+import { getOrganizationId, requireAuth, requireWriteAccess } from "@/lib/auth";
 import {
   transactionSchema,
   transactionFilterSchema,
@@ -131,7 +131,7 @@ export async function getTransaction(id: string) {
 
 export async function createTransaction(data: unknown) {
   try {
-    const user = await requireAuth();
+    const user = await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = transactionSchema.safeParse(data);
@@ -215,7 +215,7 @@ export async function createTransaction(data: unknown) {
 
 export async function updateTransaction(id: string, data: unknown) {
   try {
-    const user = await requireAuth();
+    const user = await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = transactionSchema.safeParse(data);
@@ -336,7 +336,7 @@ export async function updateTransaction(id: string, data: unknown) {
 
 export async function deleteTransaction(id: string) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const existing = await prisma.transaction.findFirst({

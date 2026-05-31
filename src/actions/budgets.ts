@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationId, requireAuth } from "@/lib/auth";
+import { getOrganizationId, requireAuth, requireWriteAccess } from "@/lib/auth";
 import { budgetSchema } from "@/schemas/budget";
 
 export async function getBudgets(month: number, year: number) {
@@ -58,7 +58,7 @@ export async function getBudgets(month: number, year: number) {
 
 export async function createBudget(data: unknown) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = budgetSchema.safeParse(data);
@@ -118,7 +118,7 @@ export async function createBudget(data: unknown) {
 
 export async function deleteBudget(id: string) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     const existing = await prisma.budget.findFirst({
@@ -146,7 +146,7 @@ export async function deleteBudget(id: string) {
 
 export async function copyBudgetsFromPreviousMonth(month: number, year: number) {
   try {
-    await requireAuth();
+    await requireWriteAccess();
     const organizationId = await getOrganizationId();
 
     // Calculate previous month

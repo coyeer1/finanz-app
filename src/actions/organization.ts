@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { getOrganizationId, requireAuth } from "@/lib/auth";
+import { getOrganizationId, requireAuth, requireAdminAccess } from "@/lib/auth";
 import { z } from "zod";
 import crypto from "crypto";
 
@@ -59,7 +59,7 @@ export async function getOrgCurrency(): Promise<string> {
 
 export async function updateOrganization(data: unknown) {
   try {
-    await requireAuth();
+    await requireAdminAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = updateOrgSchema.safeParse(data);
@@ -121,7 +121,7 @@ export async function getOrganizationMembers() {
 
 export async function createInviteToken(email: string, role: string) {
   try {
-    await requireAuth();
+    await requireAdminAccess();
     const organizationId = await getOrganizationId();
 
     const parsed = inviteSchema.safeParse({ email, role });

@@ -132,3 +132,35 @@ export async function requireAuth() {
   }
   return session.user;
 }
+
+export type Role = "OWNER" | "ADMIN" | "MEMBER" | "VIEWER";
+
+// Roles con permiso de escritura sobre datos financieros (no VIEWER)
+export const WRITE_ROLES: Role[] = ["OWNER", "ADMIN", "MEMBER"];
+// Roles con permiso de gestion de la organizacion (ajustes, invitaciones)
+export const ADMIN_ROLES: Role[] = ["OWNER", "ADMIN"];
+
+export async function requireRole(allowed: Role[]) {
+  const user = await requireAuth();
+  const role = (user.role ?? "VIEWER") as Role;
+  if (!allowed.includes(role)) {
+    throw new Error("No tienes permiso para realizar esta accion");
+  }
+  return user;
+}
+
+// Bloquea a los VIEWER de crear/editar/eliminar datos
+export async function requireWriteAccess() {
+  return requireRole(WRITE_ROLES);
+}
+
+// Solo OWNER/ADMIN pueden gestionar la organizacion
+export async function requireAdminAccess() {
+  return requireRole(ADMIN_ROLES);
+}
+
+// Rol del usuario actual (para gating en server components)
+export async function getUserRole(): Promise<Role> {
+  const session = await auth();
+  return (session?.user?.role ?? "VIEWER") as Role;
+}

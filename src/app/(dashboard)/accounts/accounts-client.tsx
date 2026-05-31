@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Plus, Wallet, Landmark, CreditCard, PiggyBank, TrendingUp, X, Loader2, Trash2 } from "lucide-react";
 import { createAccount, deleteAccount, getAccounts, getTotalBalance } from "@/actions/accounts";
+import { usePermissions } from "@/hooks/use-permissions";
 import { CurrencyInput } from "@/components/shared/currency-input";
 import { cn, formatCurrency } from "@/lib/utils";
 import { accountSchema, type AccountFormData } from "@/schemas/account";
@@ -33,6 +34,7 @@ export function AccountsClient({
   totalBalance: initialBalance,
   currency,
 }: AccountsClientProps) {
+  const { canWrite } = usePermissions();
   const [accounts, setAccounts] = useState(initialAccounts);
   const [totalBalance, setTotalBalance] = useState(initialBalance);
 
@@ -152,13 +154,15 @@ export function AccountsClient({
         <h2 className="font-[family-name:var(--font-dm-sans)] text-sm font-medium text-text-secondary">
           Mis cuentas
         </h2>
-        <button
-          onClick={() => setShowForm(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] bg-accent-primary text-white text-xs font-medium hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-3.5 h-3.5" />
-          Nueva cuenta
-        </button>
+        {canWrite && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] bg-accent-primary text-white text-xs font-medium hover:opacity-90 transition-opacity"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Nueva cuenta
+          </button>
+        )}
       </div>
 
       {/* Account cards grid */}
@@ -174,17 +178,19 @@ export function AccountsClient({
               )}
             >
               {/* Delete button */}
-              <button
-                onClick={() => handleDelete(account.id)}
-                disabled={deletingId === account.id}
-                className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-hover transition-all"
-              >
-                {deletingId === account.id ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Trash2 className="w-3 h-3" />
-                )}
-              </button>
+              {canWrite && (
+                <button
+                  onClick={() => handleDelete(account.id)}
+                  disabled={deletingId === account.id}
+                  className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 flex h-6 w-6 items-center justify-center rounded-[var(--radius-sm)] text-text-muted hover:text-accent-danger hover:bg-bg-hover transition-all"
+                >
+                  {deletingId === account.id ? (
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="w-3 h-3" />
+                  )}
+                </button>
+              )}
 
               <div className="flex items-center gap-3 mb-3">
                 <div
