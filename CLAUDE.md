@@ -174,6 +174,24 @@ Patrón: Server Component fetch → pasa data a Client Component via props → C
 - Supabase pooler: host es `aws-1-us-west-2`, NO `aws-0-us-east-1`
 - Client state stale: usar `useEffect` para sincronizar props del server, no solo `useState(initial)`
 - Chart Y-axis: usar formato adaptativo (M/k/plain) para soportar diferentes monedas
+- **"Invalid cuid" al crear transacciones/presupuestos**: los IDs reales en la DB NO son formato cuid (son `acc_bank_01`, UUIDs, etc.). NUNCA validar IDs con `.cuid()`/`.uuid()` en Zod — usar `.min(1)`. Aplica a categoryId/accountId en transaction.ts y budget.ts.
+- **Balance corrupto con TRANSFER**: las transacciones tipo TRANSFER ahora son NEUTRALES al balance (`type === "INCOME" ? amount : type === "EXPENSE" ? -amount : 0`). Antes restaban como gasto. El modelo solo tiene un `accountId`, así que una transferencia real (origen+destino) NO está implementada — TRANSFER queda neutral hasta entonces. Aplica a create/update/delete en transactions.ts.
+
+## Rendimiento (patrones aplicados)
+
+- **`loading.tsx` en cada ruta del dashboard**: usa `<PageSkeleton />`. SIN esto la navegación espera en blanco a que resuelvan todas las queries del server component. Con esto el skeleton aparece instantáneo (streaming). Es la mayor mejora de velocidad percibida — mantener uno por ruta.
+- **Queries paralelas**: `getDashboardStats` usa `Promise.all` para las 3 agregaciones. NUNCA hacer queries en serie con `await` si son independientes (cada round-trip a us-west-2 cuesta ~80ms).
+- **Evitar N+1**: `getMonthlyTrends` usa UNA sola `$queryRaw` con `date_trunc` + agregación en memoria, en vez de 1 query por mes.
+- Índices en `Transaction`: `(orgId, date)`, `(orgId, categoryId)`, `(orgId, accountId)`, `(orgId, type)`, `(userId)`.
+
+## Hallazgos de auditoría PENDIENTES (no aplicados aún)
+
+- **Editar/eliminar transacciones desde la UI**: `updateTransaction`/`deleteTransaction` existen en el server action pero la tabla NO tiene botones/handlers para invocarlos. Feature inalcanzable. Hay que añadir `onEdit`/`onDelete` a transaction-table.tsx.
+- **Sin checks de rol**: cualquier MEMBER/VIEWER puede editar la org, invitar miembros, borrar datos. Falta un helper `requireRole(["OWNER","ADMIN"])` en updateOrganization/createInviteToken.
+- **acceptInvite no refresca JWT**: tras aceptar invitación falta `updateSession()` → el usuario queda en loop de onboarding (mismo patrón ya resuelto en onboarding).
+- **Moneda hardcodeada "COP"**: dashboard, transacciones y presupuestos formatean siempre como COP ignorando `organization.currency`. Pasar `org.currency` como prop desde cada page server-component.
+- **CurrencyInput no acepta decimales** para monedas no-COP (borra todos los puntos). Mantener string crudo en foco, formatear en blur.
+- **FOUC de tema**: `<html>` tiene `dark` hardcodeado; usuarios en modo claro ven flash oscuro. Inyectar script bloqueante en `<head>` que lea localStorage antes de pintar.
 
 ## Pendiente / Roadmap
 
