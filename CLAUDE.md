@@ -208,9 +208,19 @@ Frontend: hook `usePermissions()` (en `hooks/use-permissions.ts`) lee el rol de 
 
 IMPORTANTE: el rol vive en el JWT (se setea en login desde la DB). Si cambias el rol de un usuario en la DB, debe re-loguearse para que el JWT se actualice.
 
-## Hallazgos de auditoría PENDIENTES (no aplicados aún)
+## Flujo de invitaciones (end-to-end)
 
-- **acceptInvite no refresca JWT**: tras aceptar invitación falta `updateSession()` → el usuario queda en loop de onboarding (mismo patrón ya resuelto en onboarding).
+1. ADMIN/OWNER en Ajustes → Organización → "Invitar miembro": genera token (24h) y muestra link copiable `${origin}/invite/{token}`.
+2. El invitado abre el link. `/invite/[token]/page.tsx` (server) muestra org + rol:
+   - Sin sesión → botones a `/login?callbackUrl=/invite/{token}` y `/register?callbackUrl=...`.
+   - Con sesión pero email distinto → aviso de mismatch.
+   - Con sesión y email correcto → `AcceptInviteClient` con botón "Aceptar".
+3. Al aceptar: `acceptInvite(token)` asigna org+rol en DB, devuelve `{organizationId, role}`, y el cliente llama `update()` de `useSession` para refrescar el JWT (evita el loop de onboarding). Redirige a /dashboard.
+
+Notas:
+- El proxy trata `/invite/*` como público (no redirige a login) para que la página muestre su propia UI.
+- login y register respetan `?callbackUrl=` (con `useSearchParams` envuelto en `<Suspense>`). Register usa callbackUrl en vez de /onboarding cuando viene de una invitación.
+- `getInvitePreview(token)` no requiere auth (el token de 32 bytes es el secreto).
 - **CurrencyInput no acepta decimales** para monedas no-COP (borra todos los puntos). Mantener string crudo en foco, formatear en blur.
 - **FOUC de tema**: `<html>` tiene `dark` hardcodeado; usuarios en modo claro ven flash oscuro. Inyectar script bloqueante en `<head>` que lea localStorage antes de pintar.
 
@@ -221,6 +231,7 @@ IMPORTANTE: el rol vive en el JWT (se setea en login desde la DB). Si cambias el
 - ✅ Moneda según organización en dashboard, transacciones, presupuestos, cuentas y reportes.
 - ✅ Control de roles (RBAC): servidor (requireWriteAccess/requireAdminAccess) + UI (usePermissions).
 - ✅ Cambiar el rol de un miembro desde Ajustes → Organización (`updateMemberRole`, solo ADMIN/OWNER, no toca OWNER ni el propio rol). El miembro debe re-loguear para que su JWT refleje el nuevo rol.
+- ✅ Flujo de invitaciones completo (link copiable + página /invite/[token] + acceptInvite con updateSession). Ver sección "Flujo de invitaciones".
 
 ## Pendiente / Roadmap
 

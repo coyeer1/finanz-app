@@ -223,6 +223,37 @@ export async function createInviteToken(email: string, role: string) {
   }
 }
 
+// Vista previa de una invitacion (sin requerir auth ni que el email
+// coincida) para renderizar la pagina /invite/[token]. El token es un
+// secreto de 32 bytes, conocerlo es prueba suficiente para ver el detalle.
+export async function getInvitePreview(token: string) {
+  const invite = await prisma.inviteToken.findUnique({
+    where: { token },
+  });
+
+  if (!invite) {
+    return { valid: false as const, error: "Invitacion no encontrada" };
+  }
+  if (invite.usedAt) {
+    return { valid: false as const, error: "Esta invitacion ya fue utilizada" };
+  }
+  if (new Date() > invite.expiresAt) {
+    return { valid: false as const, error: "Esta invitacion ha expirado" };
+  }
+
+  const organization = await prisma.organization.findUnique({
+    where: { id: invite.organizationId },
+    select: { name: true },
+  });
+
+  return {
+    valid: true as const,
+    email: invite.email,
+    role: invite.role as string,
+    organizationName: organization?.name ?? "la organizacion",
+  };
+}
+
 export async function acceptInvite(token: string) {
   try {
     const user = await requireAuth();

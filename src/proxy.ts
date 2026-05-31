@@ -7,9 +7,10 @@ const publicPaths = ["/", "/login", "/register", "/pricing", "/features"];
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const isPublicPath = publicPaths.some(
-    (p) => pathname === p || pathname.startsWith("/api/auth")
-  );
+  const isPublicPath =
+    publicPaths.some((p) => pathname === p) ||
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/invite/");
 
   const session = await auth();
   const isLoggedIn = !!session?.user;

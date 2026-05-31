@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Save, UserPlus, Loader2 } from "lucide-react";
+import { Save, UserPlus, Loader2, Copy, Check } from "lucide-react";
 import {
   updateOrganization,
   createInviteToken,
@@ -49,6 +49,8 @@ export function OrganizationClient({
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteSuccess, setInviteSuccess] = useState(false);
   const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState("");
+  const [copied, setCopied] = useState(false);
 
   async function handleSave() {
     startTransition(async () => {
@@ -68,9 +70,15 @@ export function OrganizationClient({
   async function handleInvite() {
     if (!inviteEmail) return;
     setInviting(true);
+    setInviteLink("");
+    setCopied(false);
     const result = await createInviteToken(inviteEmail, inviteRole);
-    if (result.success) {
-      setInviteMessage("Invitacion creada. Comparte el link con el usuario.");
+    if (result.success && result.data) {
+      const link = `${window.location.origin}/invite/${result.data}`;
+      setInviteLink(link);
+      setInviteMessage(
+        "Invitación creada. Comparte este link (válido 24h):"
+      );
       setInviteSuccess(true);
       setInviteEmail("");
     } else {
@@ -78,7 +86,16 @@ export function OrganizationClient({
       setInviteSuccess(false);
     }
     setInviting(false);
-    setTimeout(() => setInviteMessage(""), 5000);
+  }
+
+  async function copyInviteLink() {
+    try {
+      await navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Si el portapapeles falla, el usuario puede copiar manualmente del input
+    }
   }
 
   async function handleRoleChange(memberId: string, newRole: string) {
@@ -276,6 +293,34 @@ export function OrganizationClient({
 
         {inviteMessage && (
           <p className={`text-xs ${inviteSuccess ? "text-accent-primary" : "text-accent-danger"}`}>{inviteMessage}</p>
+        )}
+
+        {inviteLink && (
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              readOnly
+              value={inviteLink}
+              onFocus={(e) => e.target.select()}
+              className="input-underline flex-1 text-xs text-text-secondary"
+            />
+            <button
+              onClick={copyInviteLink}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-[var(--radius-md)] border border-border-primary text-xs text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors whitespace-nowrap"
+            >
+              {copied ? (
+                <>
+                  <Check className="w-3.5 h-3.5 text-accent-primary" />
+                  Copiado
+                </>
+              ) : (
+                <>
+                  <Copy className="w-3.5 h-3.5" />
+                  Copiar
+                </>
+              )}
+            </button>
+          </div>
         )}
       </div>
       )}

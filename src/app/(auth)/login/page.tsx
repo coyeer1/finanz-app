@@ -1,11 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Mail, Lock, Loader2, Eye, EyeOff } from "lucide-react";
 
-export default function LoginPage() {
+function LoginForm() {
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -23,7 +26,7 @@ export default function LoginPage() {
         email,
         password,
         redirect: false,
-        callbackUrl: "/dashboard",
+        callbackUrl,
       });
 
       if (result?.error) {
@@ -40,7 +43,7 @@ export default function LoginPage() {
 
   async function handleGoogleLogin() {
     setGoogleLoading(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    await signIn("google", { callbackUrl });
   }
 
   return (
@@ -153,7 +156,11 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-sm text-text-secondary">
           ¿No tienes cuenta?{" "}
           <Link
-            href="/register"
+            href={
+              callbackUrl !== "/dashboard"
+                ? `/register?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/register"
+            }
             className="text-accent-primary hover:underline"
           >
             Regístrate
@@ -161,5 +168,13 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }

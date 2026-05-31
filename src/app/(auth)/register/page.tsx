@@ -1,12 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
 import { signIn } from "next-auth/react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { registerUser } from "@/actions/auth";
 import { User, Mail, Lock, Loader2 } from "lucide-react";
 
-export default function RegisterPage() {
+function RegisterForm() {
+  const searchParams = useSearchParams();
+  // Si llega de una invitación, tras registrarse vuelve al link de invitación
+  const callbackUrl = searchParams.get("callbackUrl") || "/onboarding";
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +48,7 @@ export default function RegisterPage() {
         email,
         password,
         redirect: true,
-        callbackUrl: "/onboarding",
+        callbackUrl,
       });
     } catch {
       setError("Ocurrió un error. Intenta de nuevo.");
@@ -147,7 +151,11 @@ export default function RegisterPage() {
         <p className="mt-6 text-center text-sm text-text-secondary">
           ¿Ya tienes cuenta?{" "}
           <Link
-            href="/login"
+            href={
+              callbackUrl !== "/onboarding"
+                ? `/login?callbackUrl=${encodeURIComponent(callbackUrl)}`
+                : "/login"
+            }
             className="text-accent-primary hover:underline"
           >
             Inicia sesión
@@ -155,5 +163,13 @@ export default function RegisterPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense>
+      <RegisterForm />
+    </Suspense>
   );
 }
