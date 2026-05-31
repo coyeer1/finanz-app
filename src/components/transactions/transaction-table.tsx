@@ -9,6 +9,7 @@ interface TransactionTableProps {
   transactions: TransactionWithRelations[];
   hasMore: boolean;
   onLoadMore: () => Promise<void>;
+  onRowClick?: (tx: TransactionWithRelations) => void;
   currency?: string;
 }
 
@@ -16,6 +17,7 @@ export function TransactionTable({
   transactions,
   hasMore,
   onLoadMore,
+  onRowClick,
   currency = "COP",
 }: TransactionTableProps) {
   const [loading, setLoading] = useState(false);
@@ -89,7 +91,20 @@ export function TransactionTable({
         {transactions.map((tx) => (
           <div
             key={tx.id}
-            className="transaction-row grid grid-cols-[1fr_auto] md:grid-cols-[100px_1fr_120px_120px_90px_120px] items-center gap-2 px-4"
+            onClick={() => onRowClick?.(tx)}
+            role={onRowClick ? "button" : undefined}
+            tabIndex={onRowClick ? 0 : undefined}
+            onKeyDown={(e) => {
+              if (onRowClick && (e.key === "Enter" || e.key === " ")) {
+                e.preventDefault();
+                onRowClick(tx);
+              }
+            }}
+            className={cn(
+              "transaction-row grid grid-cols-[1fr_auto] md:grid-cols-[100px_1fr_120px_120px_90px_120px] items-center gap-2 px-4",
+              onRowClick &&
+                "cursor-pointer hover:bg-bg-hover transition-colors focus:outline-none focus-visible:bg-bg-hover"
+            )}
           >
             {/* Date */}
             <span className="hidden md:block font-[family-name:var(--font-jetbrains-mono)] text-xs text-text-secondary">

@@ -3,7 +3,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus } from "lucide-react";
-import { getTransactions, createTransaction, updateTransaction } from "@/actions/transactions";
+import {
+  getTransactions,
+  createTransaction,
+  updateTransaction,
+  deleteTransaction,
+} from "@/actions/transactions";
 import { TransactionTable } from "@/components/transactions/transaction-table";
 import { TransactionForm } from "@/components/transactions/transaction-form";
 import { EmptyState } from "@/components/shared/empty-state";
@@ -31,6 +36,7 @@ export function TransactionsClientWrapper({
   const [hasMore, setHasMore] = useState(false);
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<TransactionWithRelations | null>(null);
   const [loaded, setLoaded] = useState(false);
 
   const buildFilters = useCallback((): TransactionFilters & { limit: number; cursor?: string } => {
@@ -125,6 +131,39 @@ export function TransactionsClientWrapper({
     [buildFilters]
   );
 
+  const handleUpdate = useCallback(
+    async (data: TransactionFormData) => {
+      if (!editing) return;
+      const result = await updateTransaction(editing.id, data);
+      if (!result.success) {
+        throw new Error(result.error ?? "Error al actualizar la transaccion");
+      }
+      setEditing(null);
+      const refresh = await getTransactions(buildFilters());
+      if (refresh.success && refresh.data) {
+        setTransactions(refresh.data.data as TransactionWithRelations[]);
+        setHasMore(refresh.data.hasMore);
+        setNextCursor(refresh.data.nextCursor);
+      }
+    },
+    [editing, buildFilters]
+  );
+
+  const handleDelete = useCallback(async () => {
+    if (!editing) return;
+    const result = await deleteTransaction(editing.id);
+    if (!result.success) {
+      throw new Error(result.error ?? "Error al eliminar la transaccion");
+    }
+    setEditing(null);
+    const refresh = await getTransactions(buildFilters());
+    if (refresh.success && refresh.data) {
+      setTransactions(refresh.data.data as TransactionWithRelations[]);
+      setHasMore(refresh.data.hasMore);
+      setNextCursor(refresh.data.nextCursor);
+    }
+  }, [editing, buildFilters]);
+
   if (!loaded) {
     return null;
   }
@@ -155,17 +194,39 @@ export function TransactionsClientWrapper({
           transactions={transactions}
           hasMore={hasMore}
           onLoadMore={handleLoadMore}
+          onRowClick={setEditing}
           currency="COP"
         />
       )}
 
-      {/* Transaction form modal */}
+      {/* New transaction modal */}
       {showForm && (
         <TransactionForm
           categories={categories}
           accounts={accounts}
           onSubmit={handleSubmit}
           onClose={() => setShowForm(false)}
+        />
+      )}
+
+      {/* Edit transaction modal */}
+      {editing && (
+        <TransactionForm
+          categories={categories}
+          accounts={accounts}
+          defaultValues={{
+            type: editing.type,
+            amount: Number(editing.amount),
+            description: editing.description,
+            categoryId: editing.categoryId,
+            accountId: editing.accountId,
+            date: new Date(editing.date),
+            notes: editing.notes,
+            isPersonal: editing.isPersonal,
+          }}
+          onSubmit={handleUpdate}
+          onDelete={handleDelete}
+          onClose={() => setEditing(null)}
         />
       )}
     </>

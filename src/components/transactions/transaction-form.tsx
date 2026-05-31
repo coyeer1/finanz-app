@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Loader2 } from "lucide-react";
+import { X, ArrowDownLeft, ArrowUpRight, ArrowLeftRight, Loader2, Trash2 } from "lucide-react";
 import { CurrencyInput } from "@/components/shared/currency-input";
 import { DatePicker } from "@/components/shared/date-picker";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,7 @@ interface TransactionFormProps {
   accounts: AccountWithBalance[];
   defaultValues?: Partial<TransactionFormData>;
   onSubmit: (data: TransactionFormData) => Promise<void>;
+  onDelete?: () => Promise<void>;
   onClose: () => void;
 }
 
@@ -27,6 +28,7 @@ export function TransactionForm({
   accounts,
   defaultValues,
   onSubmit,
+  onDelete,
   onClose,
 }: TransactionFormProps) {
   const [type, setType] = useState<TransactionType>(defaultValues?.type ?? "EXPENSE");
@@ -39,6 +41,24 @@ export function TransactionForm({
   const [isPersonal, setIsPersonal] = useState(defaultValues?.isPersonal ?? true);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = useCallback(async () => {
+    if (!onDelete) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    setDeleting(true);
+    try {
+      await onDelete();
+    } catch {
+      setErrors({ form: "Error al eliminar la transaccion" });
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
+  }, [onDelete, confirmDelete]);
 
   const filteredCategories = useMemo(() => {
     if (type === "TRANSFER") return categories;
@@ -285,7 +305,7 @@ export function TransactionForm({
             {/* Submit */}
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || deleting}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-[var(--radius-md)] bg-accent-primary text-white text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               {submitting ? (
@@ -299,6 +319,39 @@ export function TransactionForm({
                 "Crear transaccion"
               )}
             </button>
+
+            {/* Delete (solo en edicion) */}
+            {onDelete && (
+              <button
+                type="button"
+                onClick={handleDelete}
+                onBlur={() => setConfirmDelete(false)}
+                disabled={submitting || deleting}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-2.5 rounded-[var(--radius-md)] text-sm font-medium transition-colors disabled:opacity-50",
+                  confirmDelete
+                    ? "bg-accent-danger/10 text-accent-danger border border-accent-danger/30"
+                    : "text-text-muted hover:text-accent-danger hover:bg-accent-danger/5"
+                )}
+              >
+                {deleting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Eliminando...
+                  </>
+                ) : confirmDelete ? (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Confirmar eliminacion
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Eliminar transaccion
+                  </>
+                )}
+              </button>
+            )}
           </form>
         </div>
       </div>
