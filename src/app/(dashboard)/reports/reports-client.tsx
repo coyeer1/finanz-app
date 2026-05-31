@@ -39,7 +39,7 @@ function getInitialDates() {
   };
 }
 
-export function ReportsClient() {
+export function ReportsClient({ currency }: { currency: string }) {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
   const [year, setYear] = useState(now.getFullYear());
@@ -167,7 +167,7 @@ export function ReportsClient() {
           {loading ? (
             <ChartSkeleton />
           ) : (
-            <CategoryBreakdownChart data={breakdown} />
+            <CategoryBreakdownChart data={breakdown} currency={currency} />
           )}
         </div>
 
@@ -179,7 +179,7 @@ export function ReportsClient() {
           {loading ? (
             <ChartSkeleton />
           ) : (
-            <IncomeVsExpenseChart data={trends} />
+            <IncomeVsExpenseChart data={trends} currency={currency} />
           )}
         </div>
       </div>

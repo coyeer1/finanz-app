@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { getCategories } from "@/actions/categories";
 import { getAccounts } from "@/actions/accounts";
+import { getOrgCurrency } from "@/actions/organization";
 import { TransactionFilters } from "@/components/transactions/transaction-filters";
 import { TableRowSkeleton } from "@/components/shared/loading-skeleton";
 import { TransactionsClientWrapper } from "./transactions-client";
@@ -15,9 +16,10 @@ export default async function TransactionsPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const params = await searchParams;
-  const [categoriesResult, accountsResult] = await Promise.all([
+  const [categoriesResult, accountsResult, currency] = await Promise.all([
     getCategories(),
     getAccounts(),
+    getOrgCurrency(),
   ]);
 
   const categories = categoriesResult.success ? categoriesResult.data ?? [] : [];
@@ -63,6 +65,7 @@ export default async function TransactionsPage({
           categories={categories}
           accounts={accounts}
           initialFilters={initialFilters}
+          currency={currency}
         />
       </Suspense>
     </div>

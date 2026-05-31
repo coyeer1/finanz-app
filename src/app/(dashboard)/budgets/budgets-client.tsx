@@ -28,6 +28,7 @@ interface BudgetsClientProps {
   initialBudgets: any[];
   month: number;
   year: number;
+  currency: string;
 }
 
 export function BudgetsClient({
@@ -35,6 +36,7 @@ export function BudgetsClient({
   initialBudgets,
   month,
   year,
+  currency,
 }: BudgetsClientProps) {
   const router = useRouter();
   const [budgets, setBudgets] = useState(initialBudgets);
@@ -245,7 +247,7 @@ export function BudgetsClient({
                 {/* Amounts */}
                 <div className="flex items-center justify-between">
                   <span className="font-[family-name:var(--font-jetbrains-mono)] text-xs text-text-secondary">
-                    {formatCurrency(spent)} / {formatCurrency(total)}
+                    {formatCurrency(spent, currency)} / {formatCurrency(total, currency)}
                   </span>
                   <span
                     className={cn(
@@ -312,6 +314,7 @@ export function BudgetsClient({
                   label="Monto presupuestado"
                   value={formAmount}
                   onChange={setFormAmount}
+                  currency={currency}
                 />
 
                 <p className="text-xs text-text-muted">

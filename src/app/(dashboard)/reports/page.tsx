@@ -1,10 +1,13 @@
+import { getOrgCurrency } from "@/actions/organization";
 import { ReportsClient } from "./reports-client";
 
 export const metadata = {
   title: "Reportes",
 };
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  const currency = await getOrgCurrency();
+
   return (
     <div className="space-y-6">
       <div className="animate-in">
@@ -12,7 +15,7 @@ export default function ReportsPage() {
           Reportes
         </h1>
       </div>
-      <ReportsClient />
+      <ReportsClient currency={currency} />
     </div>
   );
 }

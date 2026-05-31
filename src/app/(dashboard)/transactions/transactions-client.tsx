@@ -24,12 +24,14 @@ interface TransactionsClientWrapperProps {
   categories: CategoryWithCount[];
   accounts: AccountWithBalance[];
   initialFilters: Record<string, string>;
+  currency: string;
 }
 
 export function TransactionsClientWrapper({
   categories,
   accounts,
   initialFilters,
+  currency,
 }: TransactionsClientWrapperProps) {
   const searchParams = useSearchParams();
   const [transactions, setTransactions] = useState<TransactionWithRelations[]>([]);
@@ -195,7 +197,7 @@ export function TransactionsClientWrapper({
           hasMore={hasMore}
           onLoadMore={handleLoadMore}
           onRowClick={setEditing}
-          currency="COP"
+          currency={currency}
         />
       )}
 

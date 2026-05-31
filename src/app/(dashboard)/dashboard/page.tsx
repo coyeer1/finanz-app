@@ -5,6 +5,7 @@ import {
   getRecentTransactions,
 } from "@/actions/reports";
 import { getBudgets } from "@/actions/budgets";
+import { getOrgCurrency } from "@/actions/organization";
 import { StatsCards } from "@/components/dashboard/stats-cards";
 import { SpendingChartWrapper } from "@/components/dashboard/spending-chart-wrapper";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
@@ -37,12 +38,13 @@ export default async function DashboardPage({
   const currentMonth = now.getMonth() + 1;
   const currentYear = now.getFullYear();
 
-  const [statsResult, trendsResult, recentResult, budgetsResult] =
+  const [statsResult, trendsResult, recentResult, budgetsResult, currency] =
     await Promise.all([
       getDashboardStats(isPersonal),
       getMonthlyTrends(6),
       getRecentTransactions(5),
       getBudgets(currentMonth, currentYear),
+      getOrgCurrency(),
     ]);
 
   const stats = statsResult.success
@@ -81,11 +83,11 @@ export default async function DashboardPage({
           </div>
         }
       >
-        <StatsCards stats={stats} />
+        <StatsCards stats={stats} currency={currency} />
       </Suspense>
 
       <div className="grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6">
-        <SpendingChartWrapper data={trends} />
+        <SpendingChartWrapper data={trends} currency={currency} />
 
         <div className="space-y-6">
           <Suspense
@@ -100,11 +102,11 @@ export default async function DashboardPage({
               </div>
             }
           >
-            <RecentTransactions transactions={recent} />
+            <RecentTransactions transactions={recent} currency={currency} />
           </Suspense>
 
           <Suspense fallback={null}>
-            <BudgetProgress budgets={budgets} />
+            <BudgetProgress budgets={budgets} currency={currency} />
           </Suspense>
         </div>
       </div>

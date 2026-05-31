@@ -42,6 +42,21 @@ export async function getOrganization() {
   }
 }
 
+// Helper ligero: solo la moneda de la org (un lookup por PK). Para pasar
+// la moneda correcta a los componentes que formatean montos.
+export async function getOrgCurrency(): Promise<string> {
+  try {
+    const organizationId = await getOrganizationId();
+    const org = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: { currency: true },
+    });
+    return org?.currency ?? "COP";
+  } catch {
+    return "COP";
+  }
+}
+
 export async function updateOrganization(data: unknown) {
   try {
     await requireAuth();

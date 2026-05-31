@@ -1,4 +1,5 @@
 import { getAccounts, getTotalBalance } from "@/actions/accounts";
+import { getOrgCurrency } from "@/actions/organization";
 import { AccountsClient } from "./accounts-client";
 
 export const metadata = {
@@ -6,9 +7,10 @@ export const metadata = {
 };
 
 export default async function AccountsPage() {
-  const [accountsResult, balanceResult] = await Promise.all([
+  const [accountsResult, balanceResult, currency] = await Promise.all([
     getAccounts(),
     getTotalBalance(),
+    getOrgCurrency(),
   ]);
 
   const accounts = accountsResult.success ? accountsResult.data ?? [] : [];
@@ -25,6 +27,7 @@ export default async function AccountsPage() {
       <AccountsClient
         initialAccounts={accounts}
         totalBalance={totalBalance}
+        currency={currency}
       />
     </div>
   );

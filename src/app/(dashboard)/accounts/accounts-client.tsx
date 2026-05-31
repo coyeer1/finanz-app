@@ -12,6 +12,7 @@ import type { AccountWithBalance } from "@/types";
 interface AccountsClientProps {
   initialAccounts: AccountWithBalance[];
   totalBalance: number;
+  currency: string;
 }
 
 const iconMap: Record<string, typeof Wallet> = {
@@ -30,6 +31,7 @@ function getIcon(iconName: string) {
 export function AccountsClient({
   initialAccounts,
   totalBalance: initialBalance,
+  currency,
 }: AccountsClientProps) {
   const [accounts, setAccounts] = useState(initialAccounts);
   const [totalBalance, setTotalBalance] = useState(initialBalance);
@@ -134,7 +136,7 @@ export function AccountsClient({
       <div className="animate-in animate-delay-1 rounded-[var(--radius-lg)] border border-border-primary bg-accent-surface p-6">
         <p className="text-xs text-text-muted mb-2">Balance total</p>
         <p className="font-[family-name:var(--font-jetbrains-mono)] text-3xl md:text-4xl font-medium text-text-primary count-up-enter">
-          {formatCurrency(totalBalance)}
+          {formatCurrency(totalBalance, currency)}
         </p>
       </div>
 

@@ -184,14 +184,25 @@ Patrón: Server Component fetch → pasa data a Client Component via props → C
 - **Evitar N+1**: `getMonthlyTrends` usa UNA sola `$queryRaw` con `date_trunc` + agregación en memoria, en vez de 1 query por mes.
 - Índices en `Transaction`: `(orgId, date)`, `(orgId, categoryId)`, `(orgId, accountId)`, `(orgId, type)`, `(userId)`.
 
+## Moneda (i18n de montos)
+
+- Helper `getOrgCurrency()` en `actions/organization.ts` — lookup ligero (`select: currency`) de la moneda de la org. Cada page server-component lo llama en su `Promise.all` y pasa `currency` a los client components.
+- Componentes que formatean montos aceptan prop `currency` (default "COP"). SIEMPRE pasarla desde la page.
+- Excepción: las cuentas individuales usan SU propia moneda (`account.currency`), no la de la org — una cuenta puede estar en USD aunque la org sea COP. El "Balance total" sí usa la moneda de la org.
+- `CurrencyInput` de transacciones usa la moneda de la cuenta seleccionada; el de presupuestos usa la de la org.
+
 ## Hallazgos de auditoría PENDIENTES (no aplicados aún)
 
-- **Editar/eliminar transacciones desde la UI**: `updateTransaction`/`deleteTransaction` existen en el server action pero la tabla NO tiene botones/handlers para invocarlos. Feature inalcanzable. Hay que añadir `onEdit`/`onDelete` a transaction-table.tsx.
 - **Sin checks de rol**: cualquier MEMBER/VIEWER puede editar la org, invitar miembros, borrar datos. Falta un helper `requireRole(["OWNER","ADMIN"])` en updateOrganization/createInviteToken.
 - **acceptInvite no refresca JWT**: tras aceptar invitación falta `updateSession()` → el usuario queda en loop de onboarding (mismo patrón ya resuelto en onboarding).
-- **Moneda hardcodeada "COP"**: dashboard, transacciones y presupuestos formatean siempre como COP ignorando `organization.currency`. Pasar `org.currency` como prop desde cada page server-component.
 - **CurrencyInput no acepta decimales** para monedas no-COP (borra todos los puntos). Mantener string crudo en foco, formatear en blur.
 - **FOUC de tema**: `<html>` tiene `dark` hardcodeado; usuarios en modo claro ven flash oscuro. Inyectar script bloqueante en `<head>` que lea localStorage antes de pintar.
+
+## Features completadas (esta sesión)
+
+- ✅ Editar transacciones: clic en fila de la tabla → modal precargado (TransactionForm con `defaultValues`).
+- ✅ Eliminar transacciones: botón "Eliminar" dentro del modal de edición, confirmación en dos pasos. Revierte el balance de la cuenta.
+- ✅ Moneda según organización en dashboard, transacciones, presupuestos, cuentas y reportes.
 
 ## Pendiente / Roadmap
 

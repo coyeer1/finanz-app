@@ -1,5 +1,6 @@
 import { getCategories } from "@/actions/categories";
 import { getBudgets } from "@/actions/budgets";
+import { getOrgCurrency } from "@/actions/organization";
 import { MONTHS } from "@/lib/constants";
 import { BudgetsClient } from "./budgets-client";
 
@@ -24,9 +25,10 @@ export default async function BudgetsPage({
     ? parsedYear
     : now.getFullYear();
 
-  const [categoriesResult, budgetsResult] = await Promise.all([
+  const [categoriesResult, budgetsResult, currency] = await Promise.all([
     getCategories("EXPENSE"),
     getBudgets(month, year),
+    getOrgCurrency(),
   ]);
 
   const categories = categoriesResult.success ? categoriesResult.data ?? [] : [];
@@ -45,6 +47,7 @@ export default async function BudgetsPage({
         initialBudgets={budgets}
         month={month}
         year={year}
+        currency={currency}
       />
     </div>
   );
